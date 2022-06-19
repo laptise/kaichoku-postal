@@ -1,0 +1,40 @@
+# 開発環境
+version: "3.8"
+services:
+
+  db:
+    container_name: kpDb
+    platform: linux/x86_64x
+    image: mysql:8
+    restart: always
+    environment:
+      MYSQL_DATABASE: kaichoku_postal
+      MYSQL_ROOT_PASSWORD: $ROOT_PASSWORD
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      LOCAL_INFILE: 1
+      TZ: "Asia/Tokyo"
+    ports:
+      - 4417:3306
+    volumes:
+      - ./mysql/initdb.d:/docker-entrypoint-initdb.d #DB駆動エントリポイント
+      - ./mysql/db:/var/lib/mysql #ここにデータ永続化するためのファイルが入る。
+      - ./mysql/conf.d:/etc/mysql/conf.d #MySql設定ファイル
+    command: mysqld --enable-local-infile --default-authentication-plugin=mysql_native_password
+    user: mysql
+
+  # Nest.jsサーバー
+  server:
+    container_name: kpServer
+    tty: true
+    build: 
+      context: .
+      dockerfile: server.Dockerfile
+    environment:
+      TZ: Asia/Tokyo
+    command: 'nest start --watch'
+    volumes:
+     - ./server:/usr/src/app
+    ports:
+      - "4018:3000"
+    depends_on:
+      - db
